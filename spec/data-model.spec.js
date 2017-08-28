@@ -167,8 +167,7 @@ describe("data-model", function() {
 		let newEmployees = [ "Brian Wilkinson" ];
 		modelUnderTest.model.mrn.employees = newEmployees;
 		newEmployees.push("Tom Tomkinson");
-		//TODO: This fails but I'm not sure how to deal with it right now
-//		oldEmployees.push("Bob Pinkington");
+		oldEmployees.push("Bob Pinkington");
 		let expectedEvents = [
 			[
 				[ "mrn", "employees" ],
@@ -176,7 +175,64 @@ describe("data-model", function() {
 				[ "Brian Wilkinson" ]
 			]
 		];
-		console.log(receivedEvents);
 		expect(receivedEvents).toEqual(expectedEvents);
+	});
+	
+	it("should ensure that nested objects removed from the model do not continue to emit events", function(){
+		//Take a reference to the existing part of the model to check for subsequent modification
+		let oldEmployees = modelUnderTest.model.mrn.employees;
+
+		//Replace that part of the model entirely, this will emit an event
+		modelUnderTest.model.mrn.employees = [ "Brian Wilkinson" ];
+		let newEmployees = modelUnderTest.model.mrn.employees;
+
+		//Modify the old part of the model, no event should be produced for this
+		oldEmployees.push("Bob Pinkington");
+
+		//Modify the new part of the model, this should emit an event
+		newEmployees.push("Lexus Donnelly");
+
+		//Swap back the employee objects, this will emit an event
+		modelUnderTest.model.mrn.employees = oldEmployees;
+		let oldEmployees2 = modelUnderTest.model.mrn.employees;
+
+		//At this point oldEmployees (while initially part of the model) has been detatched and is not effectively part of the model
+		//oldEmployees2 is the 'live' reference, retrieved from the model as at the beginning of this test, only oldEmployees2 modifications should emit events
+		newEmployees.push("Ms. Elsie Mitchell");
+		oldEmployees.push("Korbin Hayes");
+		oldEmployees2.push("Delores Greenfelder");
+
+		
+		let expectedEvents = [
+			[
+				[ "mrn", "employees" ],
+				[ "Ettie McClure", "Jasmin Stroman", "Timmy Romaguera" ],
+				[ "Brian Wilkinson" ]
+			],
+			[
+				[ "mrn", "employees", "1" ],
+				DataModel.NONEXISTENT_MARKER,
+				"Lexus Donnelly"
+			],
+			[
+				[ "mrn", "employees" ],
+				[ "Brian Wilkinson", "Lexus Donnelly" ],
+				[ "Ettie McClure", "Jasmin Stroman", "Timmy Romaguera", "Bob Pinkington" ],
+			],
+			[
+				[ "mrn", "employees", "5" ],
+				DataModel.NONEXISTENT_MARKER,
+				"Delores Greenfelder"
+			]
+		];
+		expect(receivedEvents).toEqual(expectedEvents);
+		expect(modelUnderTest.model.mrn.employees).toEqual([
+			"Ettie McClure",
+			"Jasmin Stroman",
+			"Timmy Romaguera",
+			"Bob Pinkington",
+			"Korbin Hayes",
+			"Delores Greenfelder"
+		]);
 	});
 });
