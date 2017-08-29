@@ -2,6 +2,7 @@
 
 const EventEmitter = require("events").EventEmitter;
 
+//Implementation note: 'once' on the buffered emitter will result in a single event dispatch, but may contain multiple buffered events
 class EventBuffer extends EventEmitter {
 	constructor(wrappedModel){
 		super();
@@ -10,13 +11,19 @@ class EventBuffer extends EventEmitter {
 		const dispatchFunc = () => {
 			immediateHandle = null;
 			for(let [evtName, evts] of bufferMap){
-				this.emit(key, evts);
+				this.emit(evtName, evts);
 			}
 			bufferMap.clear();
 		};
+		//Note: must register removeListener first, otherwise the wrapped emitter gets a removeListener event registered
+		this.on("removeListener", (eventName) => {
+			if(this.listenerCount(eventName) === 0){
+				wrappedModel.removeAllListeners(eventName);
+			}
+		});
 		this.on("newListener", (eventName) => {
 			if(this.listenerCount(eventName) === 0){
-				wrappedModel.on(eventName, (evtName, ...evtArgs) => {
+				wrappedModel.on(eventName, (...evtArgs) => {
 					if(!bufferMap.has(eventName)){
 						bufferMap.set(eventName, []);
 					}
@@ -27,15 +34,9 @@ class EventBuffer extends EventEmitter {
 				});
 			}
 		});
-		this.on("removeListener", (eventName) => {
-			if(this.listenerCount(eventName) === 0){
-				wrappedModel.removeAllListeners(eventName);
-			}
-		});
-		
+
 	}
-	
+
 };
 
 module.exports = EventBuffer;
-
