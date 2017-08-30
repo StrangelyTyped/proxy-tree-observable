@@ -8,8 +8,9 @@ const EventEmitter = require("events").EventEmitter;
 
 class PathSubscriber extends EventEmitter {
 	constructor(model){
-		model.on("change", (evt, ...evtArgs) => {
-			let subsciberPaths = this.eventNames();
+		super();
+		model.on("change", (...evtArgs) => {
+			let subscriberPaths = this.eventNames();
 			//evtArgs either contains array of events (if we're wrapping the buffer) or array+val+val (if we aren't)
 			if(evtArgs.length === 1){
 				let evtList = evtArgs[0];
@@ -29,7 +30,7 @@ class PathSubscriber extends EventEmitter {
 				let changePath = path.join(".");
 				for(let subscriber of subscriberPaths){
 					if(changePath.length >= subscriber.length && changePath.substr(0, subscriber.length) === subscriber){
-						this.emit(subscriber, evtArgs);
+						this.emit(subscriber, ...evtArgs);
 					}
 				}
 			}
