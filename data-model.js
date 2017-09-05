@@ -37,17 +37,26 @@ const wrapLayer = function(obj, path, tree, model){
 			newPath.push(prop);
 			let oldValue = wrappedObj.hasOwnProperty(prop) ? wrappedObj[prop] : nonexistentMarker;
 			wrappedObj[prop] = newValue;
-			if(_.isObjectLike(oldValue)){
+			
+			let oldValueObjLike = _.isObjectLike(oldValue);
+			if(oldValueObjLike){
 				if(tree.nest.hasOwnProperty(prop)){
 					tree.nest[prop].valid = false;
 					delete tree.nest[prop];	
 				}
-				oldValue = _.cloneDeep(oldValue);
 			}
-			if(_.isObjectLike(newValue)){
-				newValue = _.cloneDeep(newValue);
+			
+			if(oldValue != newValue){
+				if(oldValueObjLike){	
+					oldValue = _.cloneDeep(oldValue);
+				}
+				
+				if(_.isObjectLike(newValue)){
+					newValue = _.cloneDeep(newValue);
+				}
+			
+				model.emit("change", newPath, oldValue, newValue);
 			}
-			model.emit("change", newPath, oldValue, newValue);
 			return true;
 		},
 		deleteProperty: function(wrappedObj, prop){
